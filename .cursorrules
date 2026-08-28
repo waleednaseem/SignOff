@@ -1,0 +1,11 @@
+# Signoff project intelligence
+
+- UI language is English; chat with the user in Roman Urdu, short.
+- Never touch Docker files.
+- Internal notes on client/project/agreement must never appear on public or client agreement payloads.
+- Signed agreement versions are immutable; additional work uses change requests.
+- Email is stubbed via EmailService; swap implementation later without changing callers.
+- Swagger lives at /api/docs. Share endpoints + sample responses when a flow is done.
+- Favicon/icon is the teal document+check mark in app/icon.svg.
+- Database is MongoDB at mongodb://localhost:27017/signoff via Prisma.
+- Client portal uses ClientShell (light header, no admin sidebar). Home is /agreements. History is client-scoped via GET /api/history.

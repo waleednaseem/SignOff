@@ -1,0 +1,467 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+}
+
+enum ClientStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum AgreementStatus {
+  DRAFT
+  SENT
+  VIEWED
+  CHANGES_REQUESTED
+  REVISION_IN_PROGRESS
+  AWAITING_APPROVAL
+  AWAITING_SIGNATURE
+  SIGNED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+enum RequirementInclusion {
+  INCLUDED
+  EXCLUDED
+  OPTIONAL
+}
+
+enum PriceItemType {
+  INCLUDED
+  OPTIONAL
+  ADDITIONAL
+  DISCOUNT
+  TAX
+}
+
+enum CommentStatus {
+  OPEN
+  RESOLVED
+}
+
+enum ChangeRequestStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+model User {
+  id            String    @id @default(cuid()) @map("_id")
+  email         String    @unique
+  passwordHash  String
+  name          String
+  role          Role      @default(CLIENT)
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  client            Client?
+  createdAgreements Agreement[]        @relation("AgreementCreator")
+  createdVersions   AgreementVersion[] @relation("VersionCreator")
+  comments          AgreementComment[]
+  signatures        Signature[]
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+  changeRequests    ChangeRequest[]
+}
+
+model Client {
+  id        String       @id @default(cuid()) @map("_id")
+  userId    String?      @unique
+  user      User?        @relation(fields: [userId], references: [id])
+  fullName  String
+  email     String
+  phone     String?
+  company   String?
+  address   String?
+  country   String?
+  notes     String?
+  status    ClientStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  deletedAt DateTime?
+
+  projects   Project[]
+  agreements Agreement[]
+
+  @@index([email])
+  @@index([status])
+}
+
+model Project {
+  id                 String        @id @default(cuid()) @map("_id")
+  clientId           String
+  client             Client        @relation(fields: [clientId], references: [id])
+  name               String
+  description        String?
+  status             ProjectStatus @default(PLANNING)
+  startDate          DateTime?
+  expectedCompletion DateTime?
+  internalNotes      String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  deletedAt          DateTime?
+
+  agreements     Agreement[]
+  changeRequests ChangeRequest[]
+
+  @@index([clientId])
+  @@index([status])
+}
+
+model Agreement {
+  id                    String            @id @default(cuid()) @map("_id")
+  number                String            @unique
+  projectId             String
+  project               Project           @relation(fields: [projectId], references: [id])
+  clientId              String
+  client                Client            @relation(fields: [clientId], references: [id])
+  createdById           String
+  createdBy             User              @relation("AgreementCreator", fields: [createdById], references: [id])
+  status                AgreementStatus   @default(DRAFT)
+  currentVersionId      String?           @unique
+  currentVersion        AgreementVersion? @relation("CurrentVersion", fields: [currentVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  expiresAt             DateTime?
+  internalNotes         String?
+  reminder3dSentAt      DateTime?
+  reminder1dSentAt      DateTime?
+  reminderExpiredSentAt DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  deletedAt             DateTime?
+
+  versions       AgreementVersion[]     @relation("AgreementVersions")
+  tokens         AgreementAccessToken[]
+  comments       AgreementComment[]
+  changeRequests ChangeRequest[]
+  auditLogs      AuditLog[]
+  notifications  Notification[]
+
+  @@index([clientId])
+  @@index([projectId])
+  @@index([status])
+}
+
+model AgreementVersion {
+  id                  String           @id @default(cuid()) @map("_id")
+  agreementId         String
+  agreement           Agreement        @relation("AgreementVersions", fields: [agreementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  versionNumber       Int
+  createdById         String
+  createdBy           User             @relation("VersionCreator", fields: [createdById], references: [id])
+  reasonForChange     String?
+  changesSummary      String?
+  previousVersionId   String?
+  previousVersion     AgreementVersion?  @relation("VersionChain", fields: [previousVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  nextVersions        AgreementVersion[] @relation("VersionChain")
+  status              AgreementStatus  @default(DRAFT)
+  projectTitle        String           @default("")
+  shortDescription    String?
+  detailedDescription String?
+  objectives          String?
+  startDate           DateTime?
+  estimatedCompletion DateTime?
+  timelineDisclaimer  String?
+  currency            String           @default("USD")
+  discountAmount      Float            @default(0)
+  taxPercent          Float            @default(0)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  currentFor   Agreement?          @relation("CurrentVersion")
+  requirements Requirement[]
+  priceItems   PriceItem[]
+  milestones   Milestone[]
+  terms        Term[]
+  signatures   Signature[]
+  comments     AgreementComment[]
+
+  @@unique([agreementId, versionNumber])
+  @@index([agreementId])
+}
+
+model Requirement {
+  id              String               @id @default(cuid()) @map("_id")
+  versionId       String
+  version         AgreementVersion     @relation(fields: [versionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  order           Int
+  title           String
+  description     String?
+  category        String?
+  inclusion       RequirementInclusion @default(INCLUDED)
+  estimatedEffort String?
+  notes           String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  comments AgreementComment[]
+
+  @@index([versionId])
+}
+
+model PriceItem {
+  id        String           @id @default(cuid()) @map("_id")
+  versionId String
+  version   AgreementVersion @relation(fields: [versionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  order     Int
+  label     String
+  amount    Float
+  type      PriceItemType    @default(INCLUDED)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([versionId])
+}
+
+model Milestone {
+  id           String           @id @default(cuid()) @map("_id")
+  versionId    String
+  version      AgreementVersion @relation(fields: [versionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  order        Int
+  name         String
+  description  String?
+  dueDate      DateTime?
+  amount       Float            @default(0)
+  deliverables String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([versionId])
+}
+
+model Term {
+  id        String           @id @default(cuid()) @map("_id")
+  versionId String
+  version   AgreementVersion @relation(fields: [versionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  order     Int
+  key       String
+  title     String
+  content   String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([versionId])
+}
+
+model AgreementComment {
+  id            String             @id @default(cuid()) @map("_id")
+  agreementId   String
+  agreement     Agreement          @relation(fields: [agreementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  versionId     String?
+  version       AgreementVersion?  @relation(fields: [versionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  requirementId String?
+  requirement   Requirement?       @relation(fields: [requirementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  authorId      String?
+  author        User?              @relation(fields: [authorId], references: [id])
+  authorName    String
+  authorEmail   String?
+  text          String
+  parentId      String?
+  parent        AgreementComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies       AgreementComment[] @relation("CommentReplies")
+  status        CommentStatus      @default(OPEN)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([agreementId])
+  @@index([requirementId])
+}
+
+model ChangeRequest {
+  id                 String              @id @default(cuid()) @map("_id")
+  number             String              @unique
+  agreementId        String
+  agreement          Agreement           @relation(fields: [agreementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  projectId          String
+  project            Project             @relation(fields: [projectId], references: [id])
+  title              String
+  description        String
+  additionalCost     Float               @default(0)
+  additionalTimeDays Int                 @default(0)
+  status             ChangeRequestStatus @default(SUBMITTED)
+  createdById        String?
+  createdBy          User?               @relation(fields: [createdById], references: [id])
+  requesterName      String
+  requesterEmail     String
+  adminNotes         String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([agreementId])
+  @@index([status])
+}
+
+model Signature {
+  id          String           @id @default(cuid()) @map("_id")
+  versionId   String
+  version     AgreementVersion @relation(fields: [versionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  signerName  String
+  email       String
+  typedName   String
+  imageData   String
+  ipAddress   String?
+  userId      String?
+  user        User?            @relation(fields: [userId], references: [id])
+  isAnonymous Boolean          @default(true)
+  signedAt    DateTime         @default(now())
+  pdfPath     String?
+  pdfHash     String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([versionId])
+}
+
+model AuditLog {
+  id          String     @id @default(cuid()) @map("_id")
+  eventType   String
+  userId      String?
+  user        User?      @relation(fields: [userId], references: [id])
+  clientId    String?
+  agreementId String?
+  agreement   Agreement? @relation(fields: [agreementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  versionId   String?
+  metadata    Json?
+  ipAddress   String?
+  createdAt   DateTime   @default(now())
+
+  @@index([agreementId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model AgreementAccessToken {
+  id          String    @id @default(cuid()) @map("_id")
+  tokenHash   String    @unique
+  agreementId String
+  agreement   Agreement @relation(fields: [agreementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([agreementId])
+}
+
+model Notification {
+  id          String     @id @default(cuid()) @map("_id")
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  agreementId String?
+  agreement   Agreement? @relation(fields: [agreementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  type        String
+  title       String
+  message     String
+  link        String?
+  readAt      DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([userId, readAt])
+}
+
+model AgreementTemplate {
+  id          String    @id @default(cuid()) @map("_id")
+  name        String
+  type        String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  requirements TemplateRequirement[]
+  priceItems   TemplatePriceItem[]
+  milestones   TemplateMilestone[]
+  terms        TemplateTerm[]
+}
+
+model TemplateRequirement {
+  id              String               @id @default(cuid()) @map("_id")
+  templateId      String
+  template        AgreementTemplate    @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  order           Int
+  title           String
+  description     String?
+  category        String?
+  inclusion       RequirementInclusion @default(INCLUDED)
+  estimatedEffort String?
+  notes           String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+}
+
+model TemplatePriceItem {
+  id         String            @id @default(cuid()) @map("_id")
+  templateId String
+  template   AgreementTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  order      Int
+  label      String
+  amount     Float
+  type       PriceItemType     @default(INCLUDED)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+}
+
+model TemplateMilestone {
+  id           String            @id @default(cuid()) @map("_id")
+  templateId   String
+  template     AgreementTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  order        Int
+  name         String
+  description  String?
+  amount       Float             @default(0)
+  deliverables String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+model TemplateTerm {
+  id         String            @id @default(cuid()) @map("_id")
+  templateId String
+  template   AgreementTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  order      Int
+  key        String
+  title      String
+  content    String
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+}
+
+model AppSettings {
+  id              String   @id @map("_id")
+  companyName     String   @default("Signoff")
+  companyEmail    String?
+  companyAddress  String?
+  defaultCurrency String   @default("USD")
+  reminderEnabled Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Counter {
+  key   String @id @map("_id")
+  value Int    @default(0)
+}
