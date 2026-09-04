@@ -78,6 +78,79 @@ export const openApiSpec = {
       post: { tags: ["Versions"], summary: "Create new version", security: [{ cookieAuth: [] }] },
     },
     "/agreements/{id}/versions/compare": { get: { tags: ["Versions"], summary: "Compare versions ?a=&b=", security: [{ cookieAuth: [] }] } },
+    "/agreements/{id}/proposals": {
+      get: {
+        tags: ["Proposals"],
+        summary: "List full-document proposals (client sees own)",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": {
+            description:
+              "{ success: true, data: [{ id, versionNumber, kind: 'PROPOSAL', proposalStatus, projectTitle, createdAt }] }",
+          },
+        },
+      },
+      post: {
+        tags: ["Proposals"],
+        summary: "Clone current version into a proposal draft (does not change currentVersionId)",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "201": {
+            description:
+              "{ success: true, data: { id, versionNumber, kind: 'PROPOSAL', proposalStatus: 'DRAFT_PROPOSAL', projectTitle, requirements, priceItems, milestones, terms, pricing } }",
+          },
+        },
+      },
+    },
+    "/agreements/{id}/proposals/{versionId}": {
+      get: { tags: ["Proposals"], summary: "Load a proposal document (no internal notes)", security: [{ cookieAuth: [] }] },
+      patch: {
+        tags: ["Proposals"],
+        summary: "Save draft proposal (client)",
+        security: [{ cookieAuth: [] }],
+        requestBody: {
+          content: {
+            "application/json": {
+              example: { projectTitle: "Northstar shop refresh", shortDescription: "Revised scope", currency: "USD" },
+            },
+          },
+        },
+      },
+    },
+    "/agreements/{id}/proposals/{versionId}/submit": {
+      post: {
+        tags: ["Proposals"],
+        summary: "Submit proposal. Unsigned → CHANGES_REQUESTED. Signed → ChangeRequest + snapshot.",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": { description: "{ success: true, data: { id, proposalStatus: 'SUBMITTED' } }" },
+        },
+      },
+    },
+    "/agreements/{id}/proposals/{versionId}/approve": {
+      post: {
+        tags: ["Proposals"],
+        summary: "Admin: pre-sign becomes current version; post-sign creates linked SENT agreement",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": {
+            description:
+              "{ success: true, data: { proposalStatus: 'APPROVED', currentVersionId? , childAgreement?: { id, number }, link } }",
+          },
+        },
+      },
+    },
+    "/agreements/{id}/proposals/{versionId}/reject": {
+      post: {
+        tags: ["Proposals"],
+        summary: "Admin reject; current/signed version unchanged",
+        security: [{ cookieAuth: [] }],
+        requestBody: { content: { "application/json": { example: { note: "Keep original pricing" } } } },
+        responses: {
+          "200": { description: "{ success: true, data: { proposalStatus: 'REJECTED' } }" },
+        },
+      },
+    },
     "/agreements/{id}/comments": {
       get: { tags: ["Comments"], summary: "List comments", security: [{ cookieAuth: [] }] },
       post: { tags: ["Comments"], summary: "Add comment", security: [{ cookieAuth: [] }] },

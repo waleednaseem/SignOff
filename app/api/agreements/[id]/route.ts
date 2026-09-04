@@ -6,6 +6,7 @@ import { agreementDetailInclude } from "@/lib/versioning";
 import { serialize } from "@/lib/serializers";
 import { LOCKED_STATUSES } from "@/lib/status";
 import { notDeleted } from "@/lib/soft-delete";
+import { listProposals } from "@/lib/proposals";
 
 async function loadAgreement(id: string, userId: string, role: string) {
   const agreement = await prisma.agreement.findFirst({
@@ -28,7 +29,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const { id } = await params;
     const result = await loadAgreement(id, user.id, user.role);
     if ("error" in result && result.error) return result.error;
-    return jsonOk(serialize(result.agreement, user.role === "ADMIN"));
+    const proposals = await listProposals(id, user.id, user.role);
+    return jsonOk({ ...serialize(result.agreement, user.role === "ADMIN"), proposals });
   } catch (error) {
     return handleRouteError(error);
   }

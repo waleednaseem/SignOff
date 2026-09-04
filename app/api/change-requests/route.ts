@@ -5,6 +5,7 @@ import { nextNumber } from "@/lib/numbers";
 import { writeAudit } from "@/lib/audit";
 import { notifyAdmins, notifyUsers } from "@/lib/notify";
 import { EMAIL_TEMPLATES, sendTemplatedEmail } from "@/lib/email";
+import { approveProposal, rejectProposal } from "@/lib/proposals";
 
 export async function GET(request: Request) {
   try {
@@ -83,6 +84,17 @@ export async function PATCH(request: Request) {
   try {
     const admin = await requireAdmin();
     const body = await request.json();
+    const existing = await prisma.changeRequest.findUnique({ where: { id: body.id } });
+    if (!existing) return jsonError("NOT_FOUND", "Change request not found.", 404);
+    if (existing.proposalVersionId && (body.status === "APPROVED" || body.status === "REJECTED")) {
+      const origin = new URL(request.url).origin;
+      if (body.status === "APPROVED") {
+        const result = await approveProposal(existing.agreementId, existing.proposalVersionId, admin.id, origin);
+        return jsonOk(result);
+      }
+      const result = await rejectProposal(existing.agreementId, existing.proposalVersionId, admin.id, body.adminNotes);
+      return jsonOk(result);
+    }
     const cr = await prisma.changeRequest.update({
       where: { id: body.id },
       data: { status: body.status, adminNotes: body.adminNotes },

@@ -66,6 +66,7 @@ export function publicAgreementPayload(agreement: {
   if (!version) return null;
   const pricing = computePricing(version.priceItems, version.discountAmount, version.taxPercent);
   return {
+    id: agreement.id,
     number: agreement.number,
     status: agreement.status,
     expiresAt: agreement.expiresAt,

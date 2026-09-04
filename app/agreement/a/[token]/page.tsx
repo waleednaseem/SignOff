@@ -115,6 +115,16 @@ export default function PublicAgreementPage() {
           }}
         />
 
+        {data.status !== "SIGNED" ? (
+          <p className="mt-4 text-center text-sm text-slate-600">
+            To edit the full document,{" "}
+            <a className="text-teal-800 underline" href={`/login?callbackUrl=/agreements/${data.id}/negotiate`}>
+              sign in to your client portal
+            </a>
+            .
+          </p>
+        ) : null}
+
         {signed ? (
           <Card className="mt-6">
             <CardBody className="space-y-3">

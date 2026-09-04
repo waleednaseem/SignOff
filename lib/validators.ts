@@ -90,6 +90,14 @@ export const agreementDraftSchema = z.object({
   changesSummary: z.string().optional(),
 });
 
+export const proposalDraftSchema = agreementDraftSchema.omit({
+  clientId: true,
+  projectId: true,
+  templateId: true,
+  expiresAt: true,
+  internalNotes: true,
+});
+
 export const commentSchema = z.object({
   requirementId: z.string().optional().nullable(),
   parentId: z.string().optional().nullable(),

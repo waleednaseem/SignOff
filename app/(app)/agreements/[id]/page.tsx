@@ -24,6 +24,8 @@ export default function AgreementDetailPage() {
   const [data, setData] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
+  const [proposals, setProposals] = useState<any[]>([]);
+  const [diff, setDiff] = useState<any>(null);
   const [link, setLink] = useState("");
   const [changeText, setChangeText] = useState("");
   const [signature, setSignature] = useState("");
@@ -34,6 +36,7 @@ export default function AgreementDetailPage() {
   async function load() {
     const agreement = await apiFetch<any>(`/api/agreements/${id}`);
     setData(agreement);
+    setProposals(agreement.proposals ?? []);
     const list = await apiFetch<any[]>(`/api/agreements/${id}/comments`).catch(() => []);
     setComments(list.flatMap((item) => [item, ...(item.replies ?? [])]));
     const trail = await apiFetch<any[]>(`/api/agreements/${id}/history`).catch(() => []);
@@ -78,6 +81,9 @@ export default function AgreementDetailPage() {
           description={data.currentVersion.projectTitle}
           actions={
             <div className="flex flex-wrap gap-2">
+              <Link href={`/agreements/${id}/negotiate`}>
+                <Button>{data.status === "SIGNED" ? "Request additional work" : "Negotiate"}</Button>
+              </Link>
               <Link href={`/agreements/${id}/versions`}><Button variant="ghost">Updates</Button></Link>
               <a href={`/api/agreements/${id}/pdf`}><Button variant="secondary">Download PDF</Button></a>
             </div>
@@ -97,6 +103,7 @@ export default function AgreementDetailPage() {
                 onSignature={setSignature}
                 signing={signing}
                 canSign={confirmed && Boolean(signature) && Boolean(typedName)}
+                negotiateHref={`/agreements/${id}/negotiate`}
                 onRequestChanges={async () => {
                   await apiFetch(`/api/agreements/${id}/request-changes`, {
                     method: "POST",
@@ -138,18 +145,34 @@ export default function AgreementDetailPage() {
               <Card>
                 <CardBody className="space-y-3">
                   <h3 className="font-semibold">This agreement is signed</h3>
-                  <p className="text-sm text-slate-500">The signed version is locked. Extra work goes through a change request.</p>
-                  <Link href="/change-requests"><Button className="w-full">Request additional work</Button></Link>
+                  <p className="text-sm text-slate-500">The signed version is locked. Extra work is a new linked agreement after review.</p>
+                  <Link href={`/agreements/${id}/negotiate`}><Button className="w-full">Request additional work</Button></Link>
                 </CardBody>
               </Card>
             ) : (
               <Card>
-                <CardBody>
+                <CardBody className="space-y-3">
                   <h3 className="font-semibold">Waiting on an update</h3>
                   <p className="mt-1 text-sm text-slate-500">You will be able to sign again when a new version is sent.</p>
+                  <Link href={`/agreements/${id}/negotiate`}><Button variant="outline" className="w-full">Negotiate</Button></Link>
                 </CardBody>
               </Card>
             )}
+            {proposals.length ? (
+              <Card>
+                <CardBody>
+                  <h3 className="mb-3 font-semibold">Your proposals</h3>
+                  <ul className="space-y-2 text-sm">
+                    {proposals.map((item: any) => (
+                      <li key={item.id} className="flex justify-between gap-2">
+                        <span>v{item.versionNumber}</span>
+                        <span className="text-slate-500">{item.proposalStatus?.replaceAll("_", " ")}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardBody>
+              </Card>
+            ) : null}
             <Card>
               <CardBody>
                 <h3 className="mb-3 font-semibold">History</h3>
@@ -218,6 +241,83 @@ export default function AgreementDetailPage() {
           <CardBody>
             <p className="text-xs uppercase text-amber-800">Admin notes (never shown to client)</p>
             <p>{data.internalNotes}</p>
+          </CardBody>
+        </Card>
+      ) : null}
+      {data.parentAgreement ? (
+        <p className="mb-4 text-sm text-slate-600">
+          Extra work linked to{" "}
+          <Link className="text-teal-800 hover:underline" href={`/agreements/${data.parentAgreement.id}`}>
+            {data.parentAgreement.number}
+          </Link>
+        </p>
+      ) : null}
+      {data.childAgreements?.length ? (
+        <p className="mb-4 text-sm text-slate-600">
+          Linked agreements:{" "}
+          {data.childAgreements.map((child: any) => (
+            <Link key={child.id} className="mr-2 text-teal-800 hover:underline" href={`/agreements/${child.id}`}>
+              {child.number}
+            </Link>
+          ))}
+        </p>
+      ) : null}
+      {proposals.length ? (
+        <Card className="mb-4">
+          <CardBody className="space-y-3">
+            <h3 className="font-semibold">Negotiations</h3>
+            {proposals.map((item: any) => (
+              <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3 text-sm">
+                <div>
+                  <p className="font-medium">Proposal v{item.versionNumber}</p>
+                  <p className="text-slate-500">{item.proposalStatus?.replaceAll("_", " ")} · {item.createdBy?.name}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={async () => {
+                    if (!data.currentVersion?.id) return;
+                    setDiff(await apiFetch(`/api/agreements/${id}/versions/compare?a=${data.currentVersion.id}&b=${item.id}`));
+                  }}>Compare</Button>
+                  {item.proposalStatus === "SUBMITTED" ? (
+                    <>
+                      <Button size="sm" onClick={async () => {
+                        const result = await apiFetch<{ link?: string; childAgreement?: { number: string } }>(
+                          `/api/agreements/${id}/proposals/${item.id}/approve`,
+                          { method: "POST" },
+                        );
+                        toast.success(result.childAgreement ? `Created ${result.childAgreement.number}` : "Proposal accepted");
+                        if (result.link) setLink(result.link);
+                        load().catch(() => undefined);
+                      }}>Approve</Button>
+                      <Button variant="outline" size="sm" onClick={async () => {
+                        const note = prompt("Rejection note (optional)") ?? "";
+                        await apiFetch(`/api/agreements/${id}/proposals/${item.id}/reject`, {
+                          method: "POST",
+                          body: JSON.stringify({ note }),
+                        });
+                        toast.success("Proposal declined");
+                        load().catch(() => undefined);
+                      }}>Reject</Button>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+            {diff ? (
+              <div className="grid gap-3 md:grid-cols-3">
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                  <p className="font-semibold">Added</p>
+                  {diff.reqChanges.added.map((row: any) => <p key={row.title} className="text-sm">{row.title}</p>)}
+                </div>
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
+                  <p className="font-semibold">Removed</p>
+                  {diff.reqChanges.removed.map((row: any) => <p key={row.title} className="text-sm">{row.title}</p>)}
+                </div>
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                  <p className="font-semibold">Changed</p>
+                  {diff.reqChanges.changed.map((row: any) => <p key={row.title} className="text-sm">{row.title}</p>)}
+                </div>
+              </div>
+            ) : null}
           </CardBody>
         </Card>
       ) : null}

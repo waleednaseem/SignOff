@@ -46,6 +46,8 @@ export async function cloneVersion(input: {
       changesSummary: input.changesSummary,
       previousVersionId: source.id,
       status: "REVISION_IN_PROGRESS",
+      kind: "CURRENT",
+      proposalStatus: null,
       projectTitle: source.projectTitle,
       shortDescription: source.shortDescription,
       detailedDescription: source.detailedDescription,
@@ -122,4 +124,6 @@ export const agreementDetailInclude = {
     },
   },
   tokens: { where: { revokedAt: null }, orderBy: { createdAt: "desc" } },
+  parentAgreement: { select: { id: true, number: true } },
+  childAgreements: { select: { id: true, number: true, status: true } },
 } satisfies Prisma.AgreementInclude;

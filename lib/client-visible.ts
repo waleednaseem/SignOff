@@ -9,6 +9,9 @@ export const CLIENT_HISTORY_EVENTS = [
   "CHANGE_REQUEST_APPROVED",
   "CHANGE_REQUEST_REJECTED",
   "VERSION_CREATED",
+  "PROPOSAL_SUBMITTED",
+  "PROPOSAL_APPROVED",
+  "PROPOSAL_REJECTED",
 ] as const;
 
 export const CLIENT_HISTORY_LABEL: Record<string, string> = {
@@ -22,6 +25,9 @@ export const CLIENT_HISTORY_LABEL: Record<string, string> = {
   CHANGE_REQUEST_APPROVED: "Change request approved",
   CHANGE_REQUEST_REJECTED: "Change request declined",
   VERSION_CREATED: "Updated version shared",
+  PROPOSAL_SUBMITTED: "Full document proposal submitted",
+  PROPOSAL_APPROVED: "Proposal accepted",
+  PROPOSAL_REJECTED: "Proposal declined",
 };
 
 export function isClientHistoryEvent(eventType: string) {

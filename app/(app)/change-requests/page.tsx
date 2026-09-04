@@ -10,6 +10,7 @@ import { CrBadge } from "@/components/status-badge";
 import { apiFetch } from "@/lib/api-client";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
+import Link from "next/link";
 
 export default function ChangeRequestsPage() {
   const { data } = useSession();
@@ -81,6 +82,11 @@ export default function ChangeRequestsPage() {
                 <p className="font-semibold">{item.number} · {item.title}</p>
                 <p className="text-sm text-slate-500">{item.description}</p>
                 <p className="text-sm">{formatCurrency(item.additionalCost)} · {item.additionalTimeDays} days · {item.agreement?.number}</p>
+                {item.proposalVersionId ? (
+                  <Link href={`/agreements/${item.agreementId}`} className="text-sm text-teal-800 hover:underline">
+                    Review full document
+                  </Link>
+                ) : null}
               </div>
               <div className="flex items-center gap-2">
                 <CrBadge status={item.status} />

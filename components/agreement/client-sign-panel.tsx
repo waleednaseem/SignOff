@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { SignaturePad } from "@/components/agreement/signature-pad";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/fields";
@@ -18,6 +19,7 @@ export function ClientSignPanel({
   onSign,
   signing,
   canSign,
+  negotiateHref,
 }: {
   changeText: string;
   onChangeText: (value: string) => void;
@@ -31,6 +33,7 @@ export function ClientSignPanel({
   onSign: () => void;
   signing?: boolean;
   canSign: boolean;
+  negotiateHref?: string;
 }) {
   return (
     <Card className="border-teal-200">
@@ -41,15 +44,22 @@ export function ClientSignPanel({
             Read the agreement, then draw your electronic signature with your mouse or finger.
           </p>
         </div>
+        {negotiateHref ? (
+          <Link href={negotiateHref}>
+            <Button type="button" className="w-full">
+              Negotiate full document
+            </Button>
+          </Link>
+        ) : null}
         <Textarea
           className="min-h-20"
-          placeholder="Need a change? Describe it here."
+          placeholder="Optional comment for the provider"
           value={changeText}
           onChange={(e) => onChangeText(e.target.value)}
         />
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" onClick={onRequestChanges}>
-            Request changes
+            Comment
           </Button>
           {onApprove ? (
             <Button type="button" variant="secondary" onClick={onApprove}>

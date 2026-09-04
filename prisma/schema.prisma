@@ -66,6 +66,18 @@ enum ChangeRequestStatus {
   COMPLETED
 }
 
+enum VersionKind {
+  CURRENT
+  PROPOSAL
+}
+
+enum ProposalStatus {
+  DRAFT_PROPOSAL
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
 model User {
   id            String    @id @default(cuid()) @map("_id")
   email         String    @unique
@@ -148,6 +160,9 @@ model Agreement {
   reminder3dSentAt      DateTime?
   reminder1dSentAt      DateTime?
   reminderExpiredSentAt DateTime?
+  parentAgreementId     String?
+  parentAgreement       Agreement?        @relation("AgreementAddenda", fields: [parentAgreementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  childAgreements       Agreement[]       @relation("AgreementAddenda")
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
   deletedAt             DateTime?
@@ -162,6 +177,7 @@ model Agreement {
   @@index([clientId])
   @@index([projectId])
   @@index([status])
+  @@index([parentAgreementId])
 }
 
 model AgreementVersion {
@@ -177,6 +193,8 @@ model AgreementVersion {
   previousVersion     AgreementVersion?  @relation("VersionChain", fields: [previousVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   nextVersions        AgreementVersion[] @relation("VersionChain")
   status              AgreementStatus  @default(DRAFT)
+  kind                VersionKind      @default(CURRENT)
+  proposalStatus      ProposalStatus?
   projectTitle        String           @default("")
   shortDescription    String?
   detailedDescription String?
@@ -190,8 +208,9 @@ model AgreementVersion {
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
-  currentFor   Agreement?          @relation("CurrentVersion")
-  requirements Requirement[]
+  currentFor    Agreement?     @relation("CurrentVersion")
+  changeRequest ChangeRequest?
+  requirements  Requirement[]
   priceItems   PriceItem[]
   milestones   Milestone[]
   terms        Term[]
@@ -305,9 +324,11 @@ model ChangeRequest {
   createdBy          User?               @relation(fields: [createdById], references: [id])
   requesterName      String
   requesterEmail     String
-  adminNotes         String?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  adminNotes          String?
+  proposalVersionId   String?            @unique
+  proposalVersion     AgreementVersion?  @relation(fields: [proposalVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
   @@index([agreementId])
   @@index([status])

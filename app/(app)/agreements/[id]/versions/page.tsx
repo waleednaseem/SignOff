@@ -46,7 +46,8 @@ export default function VersionsPage() {
       <div className="mb-6 space-y-2">
         {versions.map((item) => (
           <div key={item.id} className="rounded-xl border bg-white p-4 text-sm">
-            <strong>Version {item.versionNumber}</strong> · {item.status} · {formatDateTime(item.createdAt)}
+            <strong>Version {item.versionNumber}</strong>
+            {item.kind === "PROPOSAL" ? " · Proposal" : ""} · {item.proposalStatus ?? item.status} · {formatDateTime(item.createdAt)}
             <p className="text-slate-500">{item.reasonForChange}</p>
           </div>
         ))}

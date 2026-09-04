@@ -11,7 +11,7 @@ import { DEFAULT_TERMS } from "@/lib/terms";
 import { computePricing } from "@/lib/agreement-public";
 import { formatCurrency } from "@/lib/utils";
 
-const STEPS = [
+const ADMIN_STEPS = [
   "Client & project",
   "Description",
   "Scope",
@@ -23,11 +23,25 @@ const STEPS = [
   "Send",
 ];
 
-type BuilderProps = { agreementId?: string };
+const NEGOTIATE_STEPS = [
+  "Description",
+  "Scope",
+  "Timeline",
+  "Milestones",
+  "Pricing",
+  "Terms",
+  "Review",
+];
 
-export function AgreementBuilder({ agreementId }: BuilderProps) {
+type BuilderProps = { agreementId?: string; mode?: "admin" | "negotiate"; proposalId?: string };
+
+export function AgreementBuilder({ agreementId, mode = "admin", proposalId }: BuilderProps) {
   const router = useRouter();
-  const [step, setStep] = useState(agreementId ? 1 : 0);
+  const isNegotiate = mode === "negotiate";
+  const STEPS = isNegotiate ? NEGOTIATE_STEPS : ADMIN_STEPS;
+  const lastStep = STEPS.length - 1;
+  const [step, setStep] = useState(agreementId && !isNegotiate ? 1 : 0);
+  const pane = isNegotiate ? step + 1 : step;
   const [clients, setClients] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
@@ -60,17 +74,43 @@ export function AgreementBuilder({ agreementId }: BuilderProps) {
   });
 
   useEffect(() => {
+    if (isNegotiate) return;
     apiFetch<any[]>("/api/clients").then(setClients).catch((err) => toast.error(err.message));
     apiFetch<any[]>("/api/templates").then(setTemplates).catch(() => undefined);
-  }, []);
+  }, [isNegotiate]);
 
   useEffect(() => {
+    if (isNegotiate) return;
     if (!form.clientId) return;
     apiFetch<any[]>(`/api/projects?clientId=${form.clientId}`).then(setProjects).catch(() => undefined);
-  }, [form.clientId]);
+  }, [form.clientId, isNegotiate]);
 
   useEffect(() => {
     if (!agreementId) return;
+    if (isNegotiate && proposalId) {
+      apiFetch<any>(`/api/agreements/${agreementId}/proposals/${proposalId}`).then((v) => {
+        setForm((prev: any) => ({
+          ...prev,
+          projectTitle: v?.projectTitle ?? "",
+          shortDescription: v?.shortDescription ?? "",
+          detailedDescription: v?.detailedDescription ?? "",
+          objectives: v?.objectives ?? "",
+          startDate: v?.startDate ? String(v.startDate).slice(0, 10) : "",
+          estimatedCompletion: v?.estimatedCompletion ? String(v.estimatedCompletion).slice(0, 10) : "",
+          timelineDisclaimer: v?.timelineDisclaimer ?? prev.timelineDisclaimer,
+          currency: v?.currency ?? "USD",
+          discountAmount: v?.discountAmount ?? 0,
+          taxPercent: v?.taxPercent ?? 0,
+          requirements: v?.requirements ?? [],
+          priceItems: v?.priceItems ?? [],
+          milestones: v?.milestones ?? [],
+          terms: v?.terms?.length ? v.terms : DEFAULT_TERMS,
+          reasonForChange: v?.reasonForChange ?? prev.reasonForChange,
+          changesSummary: v?.changesSummary ?? "",
+        }));
+      }).catch((err) => toast.error(err.message));
+      return;
+    }
     apiFetch<any>(`/api/agreements/${agreementId}`).then((data) => {
       const v = data.currentVersion;
       setForm((prev: any) => ({
@@ -95,7 +135,7 @@ export function AgreementBuilder({ agreementId }: BuilderProps) {
         terms: v?.terms?.length ? v.terms : DEFAULT_TERMS,
       }));
     });
-  }, [agreementId]);
+  }, [agreementId, isNegotiate, proposalId]);
 
   const pricing = useMemo(
     () => computePricing(form.priceItems, form.discountAmount, form.taxPercent),
@@ -119,6 +159,11 @@ export function AgreementBuilder({ agreementId }: BuilderProps) {
         router.replace(`/agreements/${created.id}/edit`);
         return created.id;
       }
+      if (isNegotiate && proposalId) {
+        const { internalNotes: _notes, clientId: _c, projectId: _p, templateId: _t, expiresAt: _e, ...draft } = form;
+        await apiFetch(`/api/agreements/${id}/proposals/${proposalId}`, { method: "PATCH", body: JSON.stringify(draft) });
+        return id;
+      }
       await apiFetch(`/api/agreements/${id}`, { method: "PATCH", body: JSON.stringify(form) });
       return id;
     } finally {
@@ -132,7 +177,15 @@ export function AgreementBuilder({ agreementId }: BuilderProps) {
       return;
     }
     const currentId = await persist();
-    if (currentId) setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    if (currentId) setStep((s) => Math.min(s + 1, lastStep));
+  }
+
+  async function submitProposal() {
+    const currentId = await persist();
+    if (!currentId || !proposalId) return;
+    await apiFetch(`/api/agreements/${currentId}/proposals/${proposalId}/submit`, { method: "POST" });
+    toast.success("Proposal submitted for review");
+    router.push(`/agreements/${currentId}`);
   }
 
   async function send() {
@@ -159,7 +212,7 @@ export function AgreementBuilder({ agreementId }: BuilderProps) {
 
       <Card>
         <CardBody className="space-y-4">
-          {step === 0 && (
+          {pane === 0 && (
             <>
               <div>
                 <Label>Client</Label>
@@ -199,7 +252,7 @@ export function AgreementBuilder({ agreementId }: BuilderProps) {
             </>
           )}
 
-          {step === 1 && (
+          {pane === 1 && (
             <>
               <Input placeholder="Project title" value={form.projectTitle} onChange={(e) => setForm({ ...form, projectTitle: e.target.value })} />
               <Input placeholder="Short description" value={form.shortDescription} onChange={(e) => setForm({ ...form, shortDescription: e.target.value })} />
@@ -208,7 +261,7 @@ export function AgreementBuilder({ agreementId }: BuilderProps) {
             </>
           )}
 
-          {step === 2 && (
+          {pane === 2 && (
             <div className="space-y-3">
               {form.requirements.map((item: any, index: number) => (
                 <div key={index} className="rounded-xl border p-3">
@@ -268,7 +321,7 @@ export function AgreementBuilder({ agreementId }: BuilderProps) {
             </div>
           )}
 
-          {step === 3 && (
+          {pane === 3 && (
             <>
               <Label>Start date</Label>
               <Input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
@@ -278,7 +331,7 @@ export function AgreementBuilder({ agreementId }: BuilderProps) {
             </>
           )}
 
-          {step === 4 && (
+          {pane === 4 && (
             <div className="space-y-3">
               {form.milestones.map((item: any, index: number) => (
                 <div key={index} className="grid gap-2 rounded-xl border p-3 md:grid-cols-2">
@@ -318,7 +371,7 @@ export function AgreementBuilder({ agreementId }: BuilderProps) {
             </div>
           )}
 
-          {step === 5 && (
+          {pane === 5 && (
             <div className="space-y-3">
               <div className="grid gap-3 md:grid-cols-3">
                 <div>
@@ -368,7 +421,7 @@ export function AgreementBuilder({ agreementId }: BuilderProps) {
             </div>
           )}
 
-          {step === 6 && (
+          {pane === 6 && (
             <div className="space-y-4">
               {form.terms.map((term: any, index: number) => (
                 <div key={term.key ?? index}>
@@ -383,14 +436,18 @@ export function AgreementBuilder({ agreementId }: BuilderProps) {
             </div>
           )}
 
-          {step === 7 && (
+          {pane === 7 && (
             <div className="space-y-2 text-sm">
               <p><strong>Title:</strong> {form.projectTitle}</p>
               <p><strong>Features:</strong> {form.requirements.length}</p>
               <p><strong>Milestones:</strong> {form.milestones.length}</p>
               <p><strong>Total:</strong> {formatCurrency(pricing.total, form.currency)}</p>
-              <p className="text-slate-500">Use Preview to see the client-facing document before sending.</p>
-              {id ? (
+              {!isNegotiate ? (
+                <p className="text-slate-500">Use Preview to see the client-facing document before sending.</p>
+              ) : (
+                <p className="text-slate-500">Submit this document for review. It does not change the current agreement until approved.</p>
+              )}
+              {id && !isNegotiate ? (
                 <Button type="button" variant="outline" onClick={() => router.push(`/agreements/${id}/preview`)}>
                   Preview
                 </Button>
@@ -398,7 +455,7 @@ export function AgreementBuilder({ agreementId }: BuilderProps) {
             </div>
           )}
 
-          {step === 8 && (
+          {pane === 8 && (
             <div className="space-y-3">
               <p>Sending generates a secure client link, records an audit event, and emails the client (stubbed to logs).</p>
               <Button type="button" onClick={send} disabled={saving}>Send agreement</Button>
@@ -416,9 +473,13 @@ export function AgreementBuilder({ agreementId }: BuilderProps) {
               <Button type="button" variant="secondary" onClick={() => persist()} disabled={saving}>
                 {saving ? "Saving..." : "Save draft"}
               </Button>
-              {step < 8 ? (
+              {step < lastStep ? (
                 <Button type="button" onClick={next}>
                   Next
+                </Button>
+              ) : isNegotiate ? (
+                <Button type="button" onClick={submitProposal} disabled={saving}>
+                  Submit proposal
                 </Button>
               ) : null}
             </div>
