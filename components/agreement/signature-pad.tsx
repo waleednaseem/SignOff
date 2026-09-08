@@ -67,7 +67,7 @@ export function SignaturePad({
             minWidth={1.5}
             maxWidth={2.8}
             canvasProps={{
-              className: "block h-44 w-full max-w-full cursor-crosshair touch-none",
+              className: "block h-52 w-full max-w-full cursor-crosshair touch-none sm:h-44",
             }}
             onBegin={() => logScale("signature stroke begin")}
             onEnd={() => {

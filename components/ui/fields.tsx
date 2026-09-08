@@ -1,28 +1,16 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/** text-base on mobile avoids iOS focus zoom; slightly taller hit targets */
+const field =
+  "flex w-full min-w-0 rounded-lg border border-border bg-white px-3 outline-none ring-ring placeholder:text-slate-400 focus:ring-2 text-base md:text-sm";
+
 export function Input({ className, ...props }: React.ComponentProps<"input">) {
-  return (
-    <input
-      className={cn(
-        "flex h-10 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none ring-ring placeholder:text-slate-400 focus:ring-2",
-        className,
-      )}
-      {...props}
-    />
-  );
+  return <input className={cn(field, "h-11 md:h-10", className)} {...props} />;
 }
 
 export function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
-  return (
-    <textarea
-      className={cn(
-        "min-h-24 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none ring-ring placeholder:text-slate-400 focus:ring-2",
-        className,
-      )}
-      {...props}
-    />
-  );
+  return <textarea className={cn(field, "min-h-28 py-2.5 md:min-h-24", className)} {...props} />;
 }
 
 export function Label({ className, ...props }: React.ComponentProps<"label">) {
@@ -30,13 +18,5 @@ export function Label({ className, ...props }: React.ComponentProps<"label">) {
 }
 
 export function Select({ className, ...props }: React.ComponentProps<"select">) {
-  return (
-    <select
-      className={cn(
-        "flex h-10 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none ring-ring focus:ring-2",
-        className,
-      )}
-      {...props}
-    />
-  );
+  return <select className={cn(field, "h-11 md:h-10", className)} {...props} />;
 }

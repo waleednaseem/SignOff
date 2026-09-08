@@ -80,18 +80,30 @@ export default function AgreementDetailPage() {
           title={data.number}
           description={data.currentVersion.projectTitle}
           actions={
-            <div className="flex flex-wrap gap-2">
-              <Link href={`/agreements/${id}/negotiate`}>
-                <Button>{data.status === "SIGNED" ? "Request additional work" : "Negotiate"}</Button>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
+              <Link href={`/agreements/${id}/negotiate`} className="w-full sm:w-auto">
+                <Button className="w-full" size="lg">
+                  {data.status === "SIGNED" ? "Request additional work" : "Negotiate"}
+                </Button>
               </Link>
-              <Link href={`/agreements/${id}/versions`}><Button variant="ghost">Updates</Button></Link>
-              <a href={`/api/agreements/${id}/pdf`}><Button variant="secondary">Download PDF</Button></a>
+              <div className="flex gap-2">
+                <Link href={`/agreements/${id}/versions`} className="flex-1 sm:flex-none">
+                  <Button variant="ghost" className="w-full">
+                    Updates
+                  </Button>
+                </Link>
+                <a href={`/api/agreements/${id}/pdf`} className="flex-1 sm:flex-none">
+                  <Button variant="secondary" className="w-full">
+                    PDF
+                  </Button>
+                </a>
+              </div>
             </div>
           }
         />
         <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)]">
-          <div className="min-w-0">{documentBlock}</div>
-          <div className="min-w-0 space-y-4 lg:sticky lg:top-24 lg:self-start">
+          <div className="min-w-0 order-2 lg:order-1">{documentBlock}</div>
+          <div className="min-w-0 order-1 space-y-4 lg:sticky lg:top-24 lg:order-2 lg:self-start">
             {canSign ? (
               <ClientSignPanel
                 changeText={changeText}

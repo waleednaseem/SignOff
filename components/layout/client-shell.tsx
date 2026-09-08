@@ -11,11 +11,11 @@ import { Button } from "@/components/ui/button";
 type NavUser = { name?: string | null; email?: string | null; role: "ADMIN" | "CLIENT" };
 
 const nav = [
-  { href: "/agreements", label: "My agreements", icon: FileText },
-  { href: "/history", label: "History", icon: History },
-  { href: "/change-requests", label: "Change requests", icon: GitPullRequest },
-  { href: "/notifications", label: "Notifications", icon: Bell },
-  { href: "/profile", label: "Profile", icon: UserRound },
+  { href: "/agreements", label: "Agreements", short: "Home", icon: FileText },
+  { href: "/history", label: "History", short: "History", icon: History },
+  { href: "/change-requests", label: "Changes", short: "Changes", icon: GitPullRequest },
+  { href: "/notifications", label: "Alerts", short: "Alerts", icon: Bell },
+  { href: "/profile", label: "Profile", short: "You", icon: UserRound },
 ];
 
 export function ClientShell({ user, children }: { user: NavUser; children: React.ReactNode }) {
@@ -28,50 +28,36 @@ export function ClientShell({ user, children }: { user: NavUser; children: React
       headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a2684c" },
       body: JSON.stringify({
         sessionId: "a2684c",
-        runId: "post-fix",
-        hypothesisId: "A",
+        runId: "mobile",
+        hypothesisId: "M1",
         location: "client-shell.tsx",
         message: "client shell mounted",
-        data: { pathname, role: user.role },
+        data: {
+          pathname,
+          vw: typeof window !== "undefined" ? window.innerWidth : null,
+          sw: typeof document !== "undefined" ? document.documentElement.scrollWidth : null,
+          overflowing:
+            typeof window !== "undefined" && typeof document !== "undefined"
+              ? document.documentElement.scrollWidth > window.innerWidth + 1
+              : null,
+        },
         timestamp: Date.now(),
       }),
     }).catch(() => undefined);
-    const reportOverflow = () => {
-      fetch("http://127.0.0.1:7255/ingest/dd658d58-f456-46a2-a370-6fd4e08e4ef8", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a2684c" },
-        body: JSON.stringify({
-          sessionId: "a2684c",
-          runId: "post-fix",
-          hypothesisId: "F",
-          location: "client-shell.tsx:resize",
-          message: "viewport overflow",
-          data: {
-            vw: window.innerWidth,
-            sw: document.documentElement.scrollWidth,
-            overflowing: document.documentElement.scrollWidth > window.innerWidth + 1,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => undefined);
-    };
-    reportOverflow();
-    window.addEventListener("resize", reportOverflow);
-    return () => window.removeEventListener("resize", reportOverflow);
     // #endregion
-  }, [pathname, user.role]);
+  }, [pathname]);
 
   return (
     <div className="min-h-screen min-w-0 max-w-full overflow-x-hidden bg-[#f4f1ea]">
-      <header className="sticky top-0 z-20 border-b border-stone-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl min-w-0 items-center justify-between gap-2 px-4 py-3">
+      <header className="sticky top-0 z-20 border-b border-stone-200 bg-white/95 pt-safe backdrop-blur">
+        <div className="mx-auto flex max-w-6xl min-w-0 items-center justify-between gap-2 px-3 py-3 sm:px-4">
           <Link href="/agreements" className="flex min-w-0 items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-700 text-white">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-700 text-white">
               <FileSignature className="h-4 w-4" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-semibold leading-none">Signoff</p>
-              <p className="text-xs text-slate-500">Client portal</p>
+              <p className="truncate text-xs text-slate-500">{user.name ?? "Client portal"}</p>
             </div>
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
@@ -92,26 +78,43 @@ export function ClientShell({ user, children }: { user: NavUser; children: React
               );
             })}
           </nav>
-          <div className="flex min-w-0 shrink-0 items-center gap-2">
-            <div className="hidden min-w-0 text-right sm:block">
-              <p className="truncate text-sm font-medium">{user.name}</p>
-              <p className="truncate text-xs text-slate-500">{user.email}</p>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: "/login" })}>
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="shrink-0"
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            aria-label="Sign out"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline">Sign out</span>
+          </Button>
         </div>
-        <nav className="flex max-w-full gap-2 overflow-x-auto px-4 pb-3 md:hidden">
-          {nav.map((item) => (
-            <Link key={item.href} href={item.href} className="whitespace-nowrap rounded-full bg-white px-3 py-1 text-xs shadow-sm">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
       </header>
-      <main className="mx-auto min-w-0 max-w-6xl overflow-x-hidden px-4 py-8">{children}</main>
+
+      <main className="mx-auto min-w-0 max-w-6xl overflow-x-hidden px-3 pb-24 pt-5 sm:px-4 sm:py-8 md:pb-8">
+        {children}
+      </main>
+
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-white/95 pb-safe backdrop-blur md:hidden">
+        <div className="mx-auto grid max-w-6xl grid-cols-5 gap-0.5 px-1 pt-1">
+          {nav.map((item) => {
+            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10px] font-medium",
+                  active ? "text-teal-800" : "text-slate-500",
+                )}
+              >
+                <item.icon className={cn("h-5 w-5", active && "text-teal-700")} />
+                {item.short}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

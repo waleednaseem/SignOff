@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Source_Serif_4 } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
@@ -17,6 +17,18 @@ export const metadata: Metadata = {
   title: "Signoff — Project Agreements",
   description: "Create, review, and sign project agreements with a complete audit trail.",
   icons: { icon: [{ url: "/favicon.svg", type: "image/svg+xml" }] },
+  appleWebApp: {
+    capable: true,
+    title: "Signoff",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0f766e",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -48,6 +48,41 @@ export function AgreementBuilder({ agreementId, mode = "admin", proposalId }: Bu
   const [id, setId] = useState(agreementId ?? "");
   const [saving, setSaving] = useState(false);
   const [link, setLink] = useState("");
+
+  useEffect(() => {
+    // #region agent log
+    const measure = () => {
+      const footer = document.querySelector("[data-mobile-builder-footer]");
+      const nav = document.querySelector("nav.fixed.inset-x-0.bottom-0");
+      fetch("http://127.0.0.1:7255/ingest/dd658d58-f456-46a2-a370-6fd4e08e4ef8", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a2684c" },
+        body: JSON.stringify({
+          sessionId: "a2684c",
+          runId: "mobile",
+          hypothesisId: "M2",
+          location: "agreement-builder.tsx:measure",
+          message: "builder mobile layout",
+          data: {
+            mode,
+            step,
+            vw: window.innerWidth,
+            vh: window.innerHeight,
+            sw: document.documentElement.scrollWidth,
+            overflowing: document.documentElement.scrollWidth > window.innerWidth + 1,
+            footerBottom: footer ? getComputedStyle(footer as Element).bottom : null,
+            footerVisible: footer ? getComputedStyle(footer as Element).display !== "none" : false,
+            hasBottomNav: Boolean(nav),
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => undefined);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+    // #endregion
+  }, [mode, step]);
   const [form, setForm] = useState<any>({
     clientId: "",
     projectId: "",
@@ -196,18 +231,25 @@ export function AgreementBuilder({ agreementId, mode = "admin", proposalId }: Bu
   }
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap gap-2">
-        {STEPS.map((label, index) => (
-          <button
-            key={label}
-            type="button"
-            onClick={() => setStep(index)}
-            className={`rounded-full px-3 py-1 text-xs ${index === step ? "bg-teal-700 text-white" : "bg-white text-slate-600"}`}
-          >
-            {index + 1}. {label}
-          </button>
-        ))}
+    <div className="min-w-0 pb-36 md:pb-0">
+      <div className="sticky top-14 z-10 -mx-1 mb-4 bg-[#f4f1ea]/95 px-1 py-2 backdrop-blur sm:static sm:bg-transparent sm:backdrop-blur-none lg:top-0">
+        <p className="mb-2 text-xs font-medium text-slate-500 sm:hidden">
+          Step {step + 1} of {STEPS.length}: {STEPS[step]}
+        </p>
+        <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {STEPS.map((label, index) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => setStep(index)}
+              className={`shrink-0 rounded-full px-3 py-2 text-xs font-medium touch-manipulation ${
+                index === step ? "bg-teal-700 text-white" : "bg-white text-slate-600 shadow-sm"
+              }`}
+            >
+              {index + 1}. {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <Card>
@@ -465,7 +507,7 @@ export function AgreementBuilder({ agreementId, mode = "admin", proposalId }: Bu
             </div>
           )}
 
-          <div className="flex justify-between pt-4">
+          <div className={`hidden justify-between gap-2 pt-4 ${isNegotiate ? "md:flex" : "lg:flex"}`}>
             <Button type="button" variant="outline" onClick={() => setStep((s) => Math.max(s - 1, 0))}>
               Back
             </Button>
@@ -481,11 +523,67 @@ export function AgreementBuilder({ agreementId, mode = "admin", proposalId }: Bu
                 <Button type="button" onClick={submitProposal} disabled={saving}>
                   Submit proposal
                 </Button>
+              ) : pane === 8 ? (
+                <Button type="button" onClick={send} disabled={saving}>
+                  Send to client
+                </Button>
               ) : null}
             </div>
           </div>
         </CardBody>
       </Card>
+
+      <div
+        data-mobile-builder-footer
+        className={`fixed inset-x-0 bottom-[4.25rem] z-30 border-t border-stone-200 bg-white/95 pb-safe backdrop-blur ${
+          isNegotiate ? "md:hidden" : "lg:hidden"
+        }`}
+      >
+        <div className="mx-auto flex max-w-6xl gap-2 px-3 py-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="flex-1 touch-manipulation"
+            onClick={() => setStep((s) => Math.max(s - 1, 0))}
+          >
+            Back
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            className="touch-manipulation"
+            onClick={() => persist()}
+            disabled={saving}
+          >
+            {saving ? "..." : "Save"}
+          </Button>
+          {step < lastStep ? (
+            <Button type="button" size="lg" className="flex-[1.4] touch-manipulation" onClick={next}>
+              Next
+            </Button>
+          ) : isNegotiate ? (
+            <Button
+              type="button"
+              size="lg"
+              className="flex-[1.4] touch-manipulation"
+              onClick={submitProposal}
+              disabled={saving}
+            >
+              Submit
+            </Button>
+          ) : pane === 8 ? (
+            <Button type="button" size="lg" className="flex-[1.4] touch-manipulation" onClick={send} disabled={saving}>
+              Send
+            </Button>
+          ) : (
+            <Button type="button" size="lg" className="flex-[1.4] touch-manipulation" onClick={next}>
+              Next
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

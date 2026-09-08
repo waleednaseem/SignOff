@@ -237,7 +237,7 @@ function CommentBox({
           form.reset();
         }}
       >
-        <input name="text" className="h-9 min-w-0 flex-1 rounded-lg border px-3" placeholder="Comment on this feature" />
+        <input name="text" className="h-11 min-w-0 flex-1 rounded-lg border px-3 text-base" placeholder="Comment on this feature" />
         <button className="rounded-lg bg-slate-900 px-3 text-white">Add</button>
       </form>
     </div>
