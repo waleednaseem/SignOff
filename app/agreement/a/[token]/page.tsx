@@ -46,32 +46,6 @@ export default function PublicAgreementPage() {
       });
   }, [token]);
 
-  useEffect(() => {
-    if (!data) return;
-    // #region agent log
-    fetch("http://127.0.0.1:7255/ingest/dd658d58-f456-46a2-a370-6fd4e08e4ef8", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a2684c" },
-      body: JSON.stringify({
-        sessionId: "a2684c",
-        runId: "mobile",
-        hypothesisId: "M3",
-        location: "public-agreement-page.tsx",
-        message: "public page layout",
-        data: {
-          vw: window.innerWidth,
-          vh: window.innerHeight,
-          sw: document.documentElement.scrollWidth,
-          overflowing: document.documentElement.scrollWidth > window.innerWidth + 1,
-          hasFixedSignHeap: Boolean(document.querySelector("[data-mobile-jump-sign]")),
-          signInFlow: Boolean(document.getElementById("sign-panel")),
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => undefined);
-    // #endregion
-  }, [data, signed]);
-
   async function act(action: string, extra: Record<string, unknown> = {}) {
     const result = await apiFetch<any>(`/api/public/agreements/${token}`, {
       method: "POST",
@@ -249,10 +223,7 @@ export default function PublicAgreementPage() {
                 </div>
               </CardBody>
             </Card>
-            <div
-              data-mobile-jump-sign
-              className="fixed inset-x-0 bottom-0 z-20 border-t bg-white/95 pb-safe backdrop-blur md:hidden"
-            >
+            <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-white/95 pb-safe backdrop-blur md:hidden">
               <div className="mx-auto flex max-w-4xl gap-2 px-3 py-2.5">
                 <Button
                   type="button"

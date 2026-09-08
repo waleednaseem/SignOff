@@ -54,17 +54,11 @@ export async function signCurrentVersion(input: {
     return { error: jsonError("INVALID_AGREEMENT", "This agreement was cancelled.", 409) };
   }
   if (!SIGNABLE_STATUSES.includes(agreement.status) && agreement.status !== "DRAFT") {
-    // #region agent log
-    fetch('http://127.0.0.1:7255/ingest/dd658d58-f456-46a2-a370-6fd4e08e4ef8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a2684c'},body:JSON.stringify({sessionId:'a2684c',runId:'e2e-lifecycle',hypothesisId:'B',location:'lib/sign.ts:signCurrentVersion',message:'sign-blocked',data:{agreementId:input.agreementId,status:agreement.status,versionId:input.versionId,currentVersionId:agreement.currentVersionId},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     return { error: jsonError("INVALID_AGREEMENT", "This agreement is not ready for signature.", 409) };
   }
   if (!input.imageData.startsWith("data:image")) {
     return { error: jsonError("INVALID_SIGNATURE", "A drawn signature is required.", 400) };
   }
-  // #region agent log
-  fetch('http://127.0.0.1:7255/ingest/dd658d58-f456-46a2-a370-6fd4e08e4ef8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a2684c'},body:JSON.stringify({sessionId:'a2684c',runId:'e2e-lifecycle',hypothesisId:'B',location:'lib/sign.ts:signCurrentVersion',message:'sign-allowed',data:{agreementId:input.agreementId,status:agreement.status,milestoneCount:agreement.currentVersion.milestones.length},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
 
   let userId = input.userId ?? agreement.client.userId ?? null;
   if (input.createAccount && input.password) {

@@ -48,41 +48,6 @@ export function AgreementBuilder({ agreementId, mode = "admin", proposalId }: Bu
   const [id, setId] = useState(agreementId ?? "");
   const [saving, setSaving] = useState(false);
   const [link, setLink] = useState("");
-
-  useEffect(() => {
-    // #region agent log
-    const measure = () => {
-      const footer = document.querySelector("[data-mobile-builder-footer]");
-      const nav = document.querySelector("nav.fixed.inset-x-0.bottom-0");
-      fetch("http://127.0.0.1:7255/ingest/dd658d58-f456-46a2-a370-6fd4e08e4ef8", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a2684c" },
-        body: JSON.stringify({
-          sessionId: "a2684c",
-          runId: "mobile",
-          hypothesisId: "M2",
-          location: "agreement-builder.tsx:measure",
-          message: "builder mobile layout",
-          data: {
-            mode,
-            step,
-            vw: window.innerWidth,
-            vh: window.innerHeight,
-            sw: document.documentElement.scrollWidth,
-            overflowing: document.documentElement.scrollWidth > window.innerWidth + 1,
-            footerBottom: footer ? getComputedStyle(footer as Element).bottom : null,
-            footerVisible: footer ? getComputedStyle(footer as Element).display !== "none" : false,
-            hasBottomNav: Boolean(nav),
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => undefined);
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-    // #endregion
-  }, [mode, step]);
   const [form, setForm] = useState<any>({
     clientId: "",
     projectId: "",
@@ -534,7 +499,6 @@ export function AgreementBuilder({ agreementId, mode = "admin", proposalId }: Bu
       </Card>
 
       <div
-        data-mobile-builder-footer
         className={`fixed inset-x-0 bottom-[4.25rem] z-30 border-t border-stone-200 bg-white/95 pb-safe backdrop-blur ${
           isNegotiate ? "md:hidden" : "lg:hidden"
         }`}

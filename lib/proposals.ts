@@ -93,9 +93,6 @@ export async function createOrResumeProposal(agreementId: string, userId: string
     include: proposalDetailInclude,
     orderBy: { createdAt: "desc" },
   });
-  // #region agent log
-  fetch('http://127.0.0.1:7255/ingest/dd658d58-f456-46a2-a370-6fd4e08e4ef8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a2684c'},body:JSON.stringify({sessionId:'a2684c',runId:'e2e-lifecycle',hypothesisId:'A',location:'lib/proposals.ts:createOrResumeProposal',message:'resume-or-create',data:{agreementId,agreementStatus:agreement.status,openId:open?.id??null,openStatus:open?.proposalStatus??null,currentVersionId:agreement.currentVersionId,milestoneCount:agreement.currentVersion.milestones?.length??0},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   if (open) return open;
 
   const source = agreement.currentVersion;
@@ -327,9 +324,6 @@ export async function submitProposal(agreementId: string, versionId: string, use
     where: { id: versionId },
     data: { proposalStatus: "SUBMITTED" },
   });
-  // #region agent log
-  fetch('http://127.0.0.1:7255/ingest/dd658d58-f456-46a2-a370-6fd4e08e4ef8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a2684c'},body:JSON.stringify({sessionId:'a2684c',runId:'e2e-lifecycle',hypothesisId:'A',location:'lib/proposals.ts:submitProposal',message:'proposal-submitted',data:{agreementId,versionId,wasSigned:agreement.status==='SIGNED',priorStatus:agreement.status,currentVersionId:agreement.currentVersionId},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
 
   if (agreement.status === "SIGNED") {
     const number = await nextNumber("CR");
@@ -591,9 +585,6 @@ export async function approveProposal(agreementId: string, versionId: string, ad
       status: "AWAITING_APPROVAL",
     },
   });
-  // #region agent log
-  fetch('http://127.0.0.1:7255/ingest/dd658d58-f456-46a2-a370-6fd4e08e4ef8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a2684c'},body:JSON.stringify({sessionId:'a2684c',runId:'e2e-lifecycle',hypothesisId:'B',location:'lib/proposals.ts:approveProposal',message:'pre-sign-approved',data:{agreementId,versionId,prevCurrent:agreement.currentVersionId,newStatus:'AWAITING_APPROVAL'},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
 
   await writeAudit({
     eventType: "PROPOSAL_APPROVED",
@@ -638,9 +629,6 @@ export async function rejectProposal(agreementId: string, versionId: string, adm
       where: { id: agreementId },
       data: { status: restore as never },
     });
-    // #region agent log
-    fetch('http://127.0.0.1:7255/ingest/dd658d58-f456-46a2-a370-6fd4e08e4ef8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a2684c'},body:JSON.stringify({sessionId:'a2684c',runId:'e2e-lifecycle',hypothesisId:'A',location:'lib/proposals.ts:rejectProposal',message:'status-restored-after-reject',data:{agreementId,versionId,restoredTo:restore,currentVersionStatus:current?.status??null},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
   }
 
   const cr = await prisma.changeRequest.findFirst({ where: { proposalVersionId: versionId } });

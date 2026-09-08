@@ -21,9 +21,6 @@ export default auth((request) => {
   const { pathname } = request.nextUrl;
   const isPublic = publicPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`));
   const session = request.auth;
-  // #region agent log
-  fetch('http://127.0.0.1:7255/ingest/dd658d58-f456-46a2-a370-6fd4e08e4ef8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a2684c'},body:JSON.stringify({sessionId:'a2684c',runId:'pre-fix',hypothesisId:'E',location:'middleware.ts',message:'middleware',data:{pathname,isPublic,hasSession:Boolean(session?.user),role:session?.user?.role ?? null},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
 
   if (!session?.user && !isPublic && pathname !== "/") {
     if (pathname.startsWith("/api/")) {

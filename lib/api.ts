@@ -75,8 +75,5 @@ export function handleRouteError(error: unknown) {
     return jsonError("VALIDATION_ERROR", issues[0]?.message ?? "Invalid input.", 400, issues);
   }
   console.error(error);
-  // #region agent log
-  fetch('http://127.0.0.1:7255/ingest/dd658d58-f456-46a2-a370-6fd4e08e4ef8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a2684c'},body:JSON.stringify({sessionId:'a2684c',runId:'pre-fix',hypothesisId:'D',location:'lib/api.ts:handleRouteError',message:'unhandled route error',data:{error:String(error)},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   return jsonError("INTERNAL_ERROR", "Something went wrong. Please try again.", 500);
 }

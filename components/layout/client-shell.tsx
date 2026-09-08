@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { useEffect } from "react";
 import { Bell, FileText, GitPullRequest, History, LogOut, UserRound, FileSignature } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -20,32 +19,6 @@ const nav = [
 
 export function ClientShell({ user, children }: { user: NavUser; children: React.ReactNode }) {
   const pathname = usePathname();
-
-  useEffect(() => {
-    // #region agent log
-    fetch("http://127.0.0.1:7255/ingest/dd658d58-f456-46a2-a370-6fd4e08e4ef8", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a2684c" },
-      body: JSON.stringify({
-        sessionId: "a2684c",
-        runId: "mobile",
-        hypothesisId: "M1",
-        location: "client-shell.tsx",
-        message: "client shell mounted",
-        data: {
-          pathname,
-          vw: typeof window !== "undefined" ? window.innerWidth : null,
-          sw: typeof document !== "undefined" ? document.documentElement.scrollWidth : null,
-          overflowing:
-            typeof window !== "undefined" && typeof document !== "undefined"
-              ? document.documentElement.scrollWidth > window.innerWidth + 1
-              : null,
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => undefined);
-    // #endregion
-  }, [pathname]);
 
   return (
     <div className="min-h-screen min-w-0 max-w-full overflow-x-hidden bg-[#f4f1ea]">

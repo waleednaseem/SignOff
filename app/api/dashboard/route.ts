@@ -6,9 +6,6 @@ import { CLIENT_HISTORY_EVENTS } from "@/lib/client-visible";
 export async function GET() {
   try {
     const user = await requireUser();
-    // #region agent log
-    fetch('http://127.0.0.1:7255/ingest/dd658d58-f456-46a2-a370-6fd4e08e4ef8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'a2684c'},body:JSON.stringify({sessionId:'a2684c',runId:'pre-fix',hypothesisId:'D',location:'dashboard/route.ts:GET',message:'dashboard start',data:{role:user.role},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     if (user.role === "ADMIN") {
       const [clients, projects, agreements, changeRequests, activity] = await Promise.all([
         prisma.client.count({ where: { ...notDeleted, status: "ACTIVE" } }),

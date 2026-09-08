@@ -4,24 +4,6 @@ import { notifyUsers, notifyAdmins } from "@/lib/notify";
 import { notDeleted } from "@/lib/soft-delete";
 import { jsonError } from "@/lib/api";
 
-function dbg(hypothesisId: string, location: string, message: string, data: Record<string, unknown>) {
-  // #region agent log
-  fetch("http://127.0.0.1:7255/ingest/dd658d58-f456-46a2-a370-6fd4e08e4ef8", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a2684c" },
-    body: JSON.stringify({
-      sessionId: "a2684c",
-      runId: "e2e-lifecycle",
-      hypothesisId,
-      location,
-      message,
-      data,
-      timestamp: Date.now(),
-    }),
-  }).catch(() => undefined);
-  // #endregion
-}
-
 export function handleDeliveryError(error: unknown) {
   if (error instanceof Error && "status" in error) {
     const status = Number((error as { status: number }).status);
@@ -93,13 +75,6 @@ export async function completeMilestone(input: {
     where: { versionId: agreement.currentVersionId!, status: "COMPLETED" },
   });
 
-  dbg("D", "lib/delivery.ts:completeMilestone", "milestone-completed", {
-    agreementId: agreement.id,
-    milestoneId: milestone.id,
-    remaining,
-    completed,
-  });
-
   return {
     milestone: { id: milestone.id, name: milestone.name, status: "COMPLETED" as const },
     progress: { completed, remaining, total: completed + remaining },
@@ -148,10 +123,6 @@ export async function requestDeliveryReview(input: { agreementId: string; adminI
     });
   }
 
-  dbg("E", "lib/delivery.ts:requestDeliveryReview", "delivery-review-requested", {
-    agreementId: agreement.id,
-  });
-
   return { status: "DELIVERY_REVIEW" as const };
 }
 
@@ -199,11 +170,6 @@ export async function acceptDelivery(input: { agreementId: string; userId: strin
     message: "Client accepted delivery. Project marked completed.",
     link: `/agreements/${agreement.id}`,
     agreementId: agreement.id,
-  });
-
-  dbg("E", "lib/delivery.ts:acceptDelivery", "final-signoff", {
-    agreementId: agreement.id,
-    projectId: agreement.projectId,
   });
 
   return { status: "COMPLETED" as const, projectStatus: "COMPLETED" as const };
