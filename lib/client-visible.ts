@@ -12,6 +12,10 @@ export const CLIENT_HISTORY_EVENTS = [
   "PROPOSAL_SUBMITTED",
   "PROPOSAL_APPROVED",
   "PROPOSAL_REJECTED",
+  "MILESTONE_COMPLETED",
+  "DELIVERY_REVIEW_REQUESTED",
+  "FINAL_SIGNOFF",
+  "PROJECT_COMPLETED",
 ] as const;
 
 export const CLIENT_HISTORY_LABEL: Record<string, string> = {
@@ -28,6 +32,10 @@ export const CLIENT_HISTORY_LABEL: Record<string, string> = {
   PROPOSAL_SUBMITTED: "Full document proposal submitted",
   PROPOSAL_APPROVED: "Proposal accepted",
   PROPOSAL_REJECTED: "Proposal declined",
+  MILESTONE_COMPLETED: "Milestone completed",
+  DELIVERY_REVIEW_REQUESTED: "Delivery ready for your signoff",
+  FINAL_SIGNOFF: "You accepted delivery and closed the project",
+  PROJECT_COMPLETED: "Project completed",
 };
 
 export function isClientHistoryEvent(eventType: string) {

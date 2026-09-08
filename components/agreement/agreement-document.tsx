@@ -36,6 +36,8 @@ export type AgreementViewModel = {
       dueDate?: string | Date | null;
       amount: number;
       deliverables?: string | null;
+      status?: string;
+      completedAt?: string | Date | null;
     }>;
     terms: Array<{ id: string; title: string; content: string }>;
     pricing: { included: number; optional: number; discount: number; subtotal: number; tax: number; total: number };
@@ -46,7 +48,8 @@ export type AgreementViewModel = {
 const STEPS = ["Review", "Changes", "Approval", "Signature", "Completed"];
 
 export function progressIndex(status: AgreementStatus) {
-  if (status === "SIGNED") return 4;
+  if (status === "COMPLETED") return 4;
+  if (status === "DELIVERY_REVIEW" || status === "SIGNED") return 4;
   if (status === "AWAITING_SIGNATURE") return 3;
   if (status === "AWAITING_APPROVAL") return 2;
   if (status === "CHANGES_REQUESTED" || status === "REVISION_IN_PROGRESS") return 1;
@@ -141,7 +144,14 @@ export function AgreementDocument({
                 <strong className="min-w-0 break-words">
                   Milestone {index + 1}: {item.name}
                 </strong>
-                <span>{formatCurrency(item.amount, version.currency)}</span>
+                <div className="flex shrink-0 items-center gap-2">
+                  {item.status === "COMPLETED" ? (
+                    <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">Completed</span>
+                  ) : (
+                    <span className="rounded bg-slate-200 px-2 py-0.5 text-xs text-slate-600">Pending</span>
+                  )}
+                  <span>{formatCurrency(item.amount, version.currency)}</span>
+                </div>
               </div>
               <p className="text-sm text-slate-600">Due {formatDate(item.dueDate)}</p>
               {item.description ? <p className="mt-1">{item.description}</p> : null}

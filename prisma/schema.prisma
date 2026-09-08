@@ -34,6 +34,8 @@ enum AgreementStatus {
   AWAITING_APPROVAL
   AWAITING_SIGNATURE
   SIGNED
+  DELIVERY_REVIEW
+  COMPLETED
   REJECTED
   EXPIRED
   CANCELLED
@@ -76,6 +78,11 @@ enum ProposalStatus {
   SUBMITTED
   APPROVED
   REJECTED
+}
+
+enum MilestoneStatus {
+  PENDING
+  COMPLETED
 }
 
 model User {
@@ -255,17 +262,19 @@ model PriceItem {
 }
 
 model Milestone {
-  id           String           @id @default(cuid()) @map("_id")
+  id           String          @id @default(cuid()) @map("_id")
   versionId    String
   version      AgreementVersion @relation(fields: [versionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   order        Int
   name         String
   description  String?
   dueDate      DateTime?
-  amount       Float            @default(0)
+  amount       Float           @default(0)
   deliverables String?
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  status       MilestoneStatus @default(PENDING)
+  completedAt  DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
   @@index([versionId])
 }

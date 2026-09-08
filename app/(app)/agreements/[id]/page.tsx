@@ -141,11 +141,47 @@ export default function AgreementDetailPage() {
                   }
                 }}
               />
+            ) : data.status === "DELIVERY_REVIEW" ? (
+              <Card className="border-cyan-200">
+                <CardBody className="space-y-3">
+                  <h3 className="font-semibold">Final delivery signoff</h3>
+                  <p className="text-sm text-slate-500">
+                    All milestones are complete. Accept delivery to close this project.
+                  </p>
+                  <Button
+                    className="w-full"
+                    onClick={async () => {
+                      await apiFetch(`/api/agreements/${id}/delivery/accept`, { method: "POST" });
+                      toast.success("Project closed. Thank you.");
+                      load().catch(() => undefined);
+                    }}
+                  >
+                    Accept delivery & close project
+                  </Button>
+                </CardBody>
+              </Card>
+            ) : data.status === "COMPLETED" ? (
+              <Card>
+                <CardBody className="space-y-2">
+                  <h3 className="font-semibold">Project completed</h3>
+                  <p className="text-sm text-slate-500">You accepted delivery. This agreement is closed.</p>
+                </CardBody>
+              </Card>
             ) : data.status === "SIGNED" ? (
               <Card>
                 <CardBody className="space-y-3">
                   <h3 className="font-semibold">This agreement is signed</h3>
                   <p className="text-sm text-slate-500">The signed version is locked. Extra work is a new linked agreement after review.</p>
+                  <div className="space-y-2">
+                    {(data.currentVersion.milestones ?? []).map((m: any) => (
+                      <div key={m.id} className="flex justify-between gap-2 text-sm">
+                        <span>{m.name}</span>
+                        <span className={m.status === "COMPLETED" ? "text-emerald-700" : "text-slate-500"}>
+                          {m.status === "COMPLETED" ? "Completed" : "Pending"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                   <Link href={`/agreements/${id}/negotiate`}><Button className="w-full">Request additional work</Button></Link>
                 </CardBody>
               </Card>
@@ -206,7 +242,7 @@ export default function AgreementDetailPage() {
         description={data.currentVersion.projectTitle}
         actions={
           <div className="flex flex-wrap gap-2">
-            {data.status !== "SIGNED" ? (
+            {!["SIGNED", "DELIVERY_REVIEW", "COMPLETED"].includes(data.status) ? (
               <>
                 <Link href={`/agreements/${id}/edit`}><Button variant="outline">Edit</Button></Link>
                 <Link href={`/agreements/${id}/preview`}><Button variant="outline">Preview</Button></Link>
@@ -317,6 +353,55 @@ export default function AgreementDetailPage() {
                   {diff.reqChanges.changed.map((row: any) => <p key={row.title} className="text-sm">{row.title}</p>)}
                 </div>
               </div>
+            ) : null}
+          </CardBody>
+        </Card>
+      ) : null}
+      {data.status === "SIGNED" || data.status === "DELIVERY_REVIEW" || data.status === "COMPLETED" ? (
+        <Card className="mb-4">
+          <CardBody className="space-y-3">
+            <h3 className="font-semibold">Delivery milestones</h3>
+            {(data.currentVersion.milestones ?? []).map((m: any) => (
+              <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3 text-sm">
+                <div>
+                  <p className="font-medium">{m.name}</p>
+                  <p className="text-slate-500">{m.status === "COMPLETED" ? "Completed" : "Pending"}</p>
+                </div>
+                {data.status === "SIGNED" && m.status !== "COMPLETED" ? (
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      const result = await apiFetch<{ allComplete: boolean }>(
+                        `/api/agreements/${id}/milestones/${m.id}/complete`,
+                        { method: "POST" },
+                      );
+                      toast.success(result.allComplete ? "All milestones done" : "Milestone completed");
+                      load().catch(() => undefined);
+                    }}
+                  >
+                    Mark complete
+                  </Button>
+                ) : null}
+              </div>
+            ))}
+            {data.status === "SIGNED" &&
+            (data.currentVersion.milestones ?? []).length > 0 &&
+            (data.currentVersion.milestones ?? []).every((m: any) => m.status === "COMPLETED") ? (
+              <Button
+                onClick={async () => {
+                  await apiFetch(`/api/agreements/${id}/delivery/request`, { method: "POST" });
+                  toast.success("Client notified for final signoff");
+                  load().catch(() => undefined);
+                }}
+              >
+                Request client final signoff
+              </Button>
+            ) : null}
+            {data.status === "DELIVERY_REVIEW" ? (
+              <p className="text-sm text-cyan-800">Waiting for the client to accept delivery.</p>
+            ) : null}
+            {data.status === "COMPLETED" ? (
+              <p className="text-sm text-emerald-800">Project closed after client signoff.</p>
             ) : null}
           </CardBody>
         </Card>

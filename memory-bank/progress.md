@@ -8,3 +8,4 @@
 - Signature, PDF, account linking
 - Client portal: separate UI, mouse e-sign, client-only history, agreements first
 - Client full-document negotiate (proposal versions, admin approve/reject, post-sign linked agreement)
+- Delivery lifecycle: milestone complete → delivery review → client final signoff → project COMPLETED

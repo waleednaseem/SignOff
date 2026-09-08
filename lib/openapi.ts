@@ -156,6 +156,37 @@ export const openApiSpec = {
       post: { tags: ["Comments"], summary: "Add comment", security: [{ cookieAuth: [] }] },
     },
     "/agreements/{id}/sign": { post: { tags: ["Signature"], summary: "Sign current version", security: [{ cookieAuth: [] }] } },
+    "/agreements/{id}/milestones/{milestoneId}/complete": {
+      post: {
+        tags: ["Delivery"],
+        summary: "Admin marks a milestone complete on the signed current version",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": {
+            description:
+              "{ success: true, data: { milestone: { id, name, status: 'COMPLETED' }, progress: { completed, remaining, total }, allComplete } }",
+          },
+        },
+      },
+    },
+    "/agreements/{id}/delivery/request": {
+      post: {
+        tags: ["Delivery"],
+        summary: "Admin requests client final signoff after all milestones are complete",
+        security: [{ cookieAuth: [] }],
+        responses: { "200": { description: "{ success: true, data: { status: 'DELIVERY_REVIEW' } }" } },
+      },
+    },
+    "/agreements/{id}/delivery/accept": {
+      post: {
+        tags: ["Delivery"],
+        summary: "Client accepts delivery; agreement + project become COMPLETED",
+        security: [{ cookieAuth: [] }],
+        responses: {
+          "200": { description: "{ success: true, data: { status: 'COMPLETED', projectStatus: 'COMPLETED' } }" },
+        },
+      },
+    },
     "/agreements/{id}/history": { get: { tags: ["Audit"], summary: "Agreement audit trail", security: [{ cookieAuth: [] }] } },
     "/history": {
       get: {
