@@ -7,12 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "db:mongo": "\"C:\\Program Files\\MongoDB\\Server\\8.2\\bin\\mongod.exe\" --replSet rs0 --port 27018 --dbpath ./data/mongo --bind_ip 127.0.0.1",
-    "db:seed": "prisma db seed",
-    "db:studio": "prisma studio"
+    "db:mongo": "\"C:\\Program Files\\MongoDB\\Server\\8.2\\bin\\mongod.exe\" --replSet rs0 --port 27018 --dbpath ./data/mongo --bind_ip 127.0.0.1"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

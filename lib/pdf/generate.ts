@@ -65,11 +65,16 @@ export async function generateAgreementPdfBuffer(input: {
 }
 
 export async function persistSignedPdf(agreementNumber: string, versionNumber: number, buffer: Buffer) {
-  const dir = path.join(process.cwd(), "storage", "signed");
+  // Vercel serverless FS is read-only except /tmp
+  const root = process.env.VERCEL ? path.join("/tmp", "signoff") : process.cwd();
+  const dir = path.join(root, "storage", "signed");
   await mkdir(dir, { recursive: true });
   const filename = `${agreementNumber}-v${versionNumber}.pdf`;
-  const filePath = path.join(dir, filename);
-  await writeFile(filePath, buffer);
+  const absolutePath = path.join(dir, filename);
+  await writeFile(absolutePath, buffer);
   const hash = createHash("sha256").update(buffer).digest("hex");
-  return { filePath: path.posix.join("storage", "signed", filename), hash };
+  const filePath = process.env.VERCEL
+    ? absolutePath
+    : path.posix.join("storage", "signed", filename);
+  return { filePath, hash };
 }

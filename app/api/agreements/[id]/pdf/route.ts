@@ -33,7 +33,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     const signature = agreement.currentVersion.signatures[0];
     if (signature?.pdfPath) {
       try {
-        const file = await readFile(path.join(process.cwd(), signature.pdfPath));
+        const resolved = path.isAbsolute(signature.pdfPath)
+          ? signature.pdfPath
+          : path.join(process.cwd(), signature.pdfPath);
+        const file = await readFile(resolved);
         return new Response(file, {
           headers: {
             "Content-Type": "application/pdf",

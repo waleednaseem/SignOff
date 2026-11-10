@@ -97,14 +97,20 @@ export async function signCurrentVersion(input: {
     },
   });
 
-  const pdfBuffer = await generateAgreementPdfBuffer({
-    agreement,
-    version: agreement.currentVersion,
-    client: agreement.client,
-    project: agreement.project,
-    signature,
-  });
-  const stored = await persistSignedPdf(agreement.number, agreement.currentVersion.versionNumber, pdfBuffer);
+  let stored: { filePath: string; hash: string };
+  try {
+    const pdfBuffer = await generateAgreementPdfBuffer({
+      agreement,
+      version: agreement.currentVersion,
+      client: agreement.client,
+      project: agreement.project,
+      signature,
+    });
+    stored = await persistSignedPdf(agreement.number, agreement.currentVersion.versionNumber, pdfBuffer);
+  } catch (error) {
+    await prisma.signature.delete({ where: { id: signature.id } }).catch(() => undefined);
+    throw error;
+  }
 
   await prisma.signature.update({
     where: { id: signature.id },
